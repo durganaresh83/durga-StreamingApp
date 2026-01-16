@@ -23,6 +23,8 @@ pipeline {
         IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
         GITHUB_REPO = 'https://github.com/durganaresh83/durga-StreamingApp.git'
         AWS_DEFAULT_REGION = 'eu-west-2'
+        AWS_SHARED_CREDENTIALS_FILE = '/var/lib/jenkins/.aws/credentials'
+        AWS_CONFIG_FILE = '/var/lib/jenkins/.aws/config'
     }
     
     parameters {
@@ -73,6 +75,24 @@ pipeline {
                         # Verify Docker is running
                         docker --version
                         echo "Docker daemon is running ✓"
+                        
+                        # Debug: Check AWS credentials
+                        echo "Checking AWS credential files..."
+                        echo "AWS_SHARED_CREDENTIALS_FILE: ${AWS_SHARED_CREDENTIALS_FILE}"
+                        echo "AWS_CONFIG_FILE: ${AWS_CONFIG_FILE}"
+                        
+                        if [ -f "${AWS_SHARED_CREDENTIALS_FILE}" ]; then
+                            echo "✓ Credentials file found"
+                            head -1 "${AWS_SHARED_CREDENTIALS_FILE}"
+                        else
+                            echo "⚠ Credentials file not found at ${AWS_SHARED_CREDENTIALS_FILE}"
+                        fi
+                        
+                        if [ -f "${AWS_CONFIG_FILE}" ]; then
+                            echo "✓ Config file found"
+                        else
+                            echo "⚠ Config file not found at ${AWS_CONFIG_FILE}"
+                        fi
                     '''
                 }
             }
@@ -86,11 +106,32 @@ pipeline {
                 script {
                     echo "🔐 Logging in to AWS ECR..."
                     sh '''
-                        # AWS credentials should be configured via EC2 IAM role
-                        # This uses the instance metadata service automatically
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        # Get credentials from EC2 metadata service
+                        export AWS_DEFAULT_REGION=${AWS_REGION}
                         
+                        # Retry logic for metadata service
+                        RETRIES=3
+                        while [ $RETRIES -gt 0 ]; do
+                            aws ecr get-login-password --region ${AWS_REGION} > /tmp/ecr_password.txt 2>&1
+                            if [ $? -eq 0 ]; then
+                                break
+                            fi
+                            RETRIES=$((RETRIES-1))
+                            if [ $RETRIES -gt 0 ]; then
+                                echo "Retry login attempt... ($RETRIES retries left)"
+                                sleep 2
+                            fi
+                        done
+                        
+                        if [ ! -f /tmp/ecr_password.txt ] || [ ! -s /tmp/ecr_password.txt ]; then
+                            echo "❌ Failed to get ECR login password"
+                            cat /tmp/ecr_password.txt 2>/dev/null || echo "No error details available"
+                            exit 1
+                        fi
+                        
+                        cat /tmp/ecr_password.txt | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        
+                        rm -f /tmp/ecr_password.txt
                         echo "Successfully logged in to ECR ✓"
                     '''
                 }
