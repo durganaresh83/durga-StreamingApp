@@ -22,6 +22,7 @@ pipeline {
         ECR_REPO = 'durga-streaming-app'
         IMAGE_TAG = "${BUILD_NUMBER}-${GIT_COMMIT.take(7)}"
         GITHUB_REPO = 'https://github.com/durganaresh83/durga-StreamingApp.git'
+        AWS_DEFAULT_REGION = 'eu-west-2'
     }
     
     parameters {
@@ -52,7 +53,7 @@ pipeline {
                         branches: [[name: '*/develop']],
                         userRemoteConfigs: [[
                             url: "${GITHUB_REPO}",
-                            credentialsId: 'github-credentials'
+                            credentialsId: 'github-token'
                         ]]
                     ])
                 }
@@ -84,12 +85,14 @@ pipeline {
             steps {
                 script {
                     echo "🔐 Logging in to AWS ECR..."
-                    sh '''
-                        aws ecr get-login-password --region ${AWS_REGION} | \
-                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        
-                        echo "Successfully logged in to ECR ✓"
-                    '''
+                    withAWS(credentials: 'aws-credentials', region: '${AWS_REGION}') {
+                        sh '''
+                            aws ecr get-login-password --region ${AWS_REGION} | \
+                            docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                            
+                            echo "Successfully logged in to ECR ✓"
+                        '''
+                    }
                 }
             }
         }
