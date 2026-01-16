@@ -85,15 +85,14 @@ pipeline {
             steps {
                 script {
                     echo "🔐 Logging in to AWS ECR..."
-                    withCredentials([string(credentialsId: 'aws-access-key', variable: 'AWS_ACCESS_KEY_ID'),
-                                     string(credentialsId: 'aws-secret-key', variable: 'AWS_SECRET_ACCESS_KEY')]) {
-                        sh '''
-                            aws ecr get-login-password --region ${AWS_REGION} | \
-                            docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                            
-                            echo "Successfully logged in to ECR ✓"
-                        '''
-                    }
+                    sh '''
+                        # AWS credentials should be configured via EC2 IAM role
+                        # This uses the instance metadata service automatically
+                        aws ecr get-login-password --region ${AWS_REGION} | \
+                        docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                        
+                        echo "Successfully logged in to ECR ✓"
+                    '''
                 }
             }
         }
