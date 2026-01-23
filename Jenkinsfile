@@ -106,33 +106,19 @@ pipeline {
                 script {
                     echo "🔐 Logging in to AWS ECR..."
                     sh '''
-                        # Get credentials from EC2 metadata service
-                        export AWS_DEFAULT_REGION=${AWS_REGION}
+                        #!/bin/bash
+                        set -e
                         
-                        # Retry logic for metadata service
-                        RETRIES=3
-                        while [ $RETRIES -gt 0 ]; do
-                            aws ecr get-login-password --region ${AWS_REGION} > /tmp/ecr_password.txt 2>&1
-                            if [ $? -eq 0 ]; then
-                                break
-                            fi
-                            RETRIES=$((RETRIES-1))
-                            if [ $RETRIES -gt 0 ]; then
-                                echo "Retry login attempt... ($RETRIES retries left)"
-                                sleep 2
-                            fi
-                        done
+                        echo "AWS Region: ${AWS_REGION}"
+                        echo "ECR Registry: ${ECR_REGISTRY}"
+                        echo "Credential file: ${AWS_SHARED_CREDENTIALS_FILE}"
+                        echo "Config file: ${AWS_CONFIG_FILE}"
                         
-                        if [ ! -f /tmp/ecr_password.txt ] || [ ! -s /tmp/ecr_password.txt ]; then
-                            echo "❌ Failed to get ECR login password"
-                            cat /tmp/ecr_password.txt 2>/dev/null || echo "No error details available"
-                            exit 1
-                        fi
+                        # Direct ECR login without retry loop
+                        echo "Retrieving ECR login password..."
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
                         
-                        cat /tmp/ecr_password.txt | docker login --username AWS --password-stdin ${ECR_REGISTRY}
-                        
-                        rm -f /tmp/ecr_password.txt
-                        echo "Successfully logged in to ECR ✓"
+                        echo "✅ Successfully logged in to ECR"
                     '''
                 }
             }
