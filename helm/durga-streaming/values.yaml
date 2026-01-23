@@ -1,0 +1,201 @@
+# Default values for durga-streaming Helm chart
+
+# Global settings
+global:
+  aws:
+    region: eu-west-2
+    accountId: "975050024946"
+    ecrRegistry: "975050024946.dkr.ecr.eu-west-2.amazonaws.com"
+  namespace: durga-streaming
+  environment: production
+
+# MongoDB Configuration
+mongodb:
+  enabled: true
+  auth:
+    enabled: true
+    rootPassword: "changeme"  # CHANGE THIS IN PRODUCTION
+  persistence:
+    enabled: true
+    size: 10Gi
+  image:
+    repository: mongo
+    tag: "6"
+
+# Auth Service
+authService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: "975050024946.dkr.ecr.eu-west-2.amazonaws.com/durga-streaming-app/auth-service"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3001
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+  env:
+    PORT: "3001"
+    NODE_ENV: "production"
+    LOG_LEVEL: "info"
+  secrets:
+    - JWT_SECRET
+    - MONGO_URI
+
+# Streaming Service
+streamingService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: "975050024946.dkr.ecr.eu-west-2.amazonaws.com/durga-streaming-app/streaming-service"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3002
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "1000m"
+  env:
+    PORT: "3002"
+    NODE_ENV: "production"
+  secrets:
+    - MONGO_URI
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+
+# Admin Service
+adminService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: "975050024946.dkr.ecr.eu-west-2.amazonaws.com/durga-streaming-app/admin-service"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3003
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+  env:
+    PORT: "3003"
+    NODE_ENV: "production"
+  secrets:
+    - MONGO_URI
+    - JWT_SECRET
+
+# Chat Service
+chatService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: "975050024946.dkr.ecr.eu-west-2.amazonaws.com/durga-streaming-app/chat-service"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3004
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "500m"
+  env:
+    PORT: "3004"
+    NODE_ENV: "production"
+  secrets:
+    - MONGO_URI
+
+# Frontend Service
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: "975050024946.dkr.ecr.eu-west-2.amazonaws.com/durga-streaming-app/frontend"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 80
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "200m"
+  env:
+    NODE_ENV: "production"
+
+# Ingress Configuration
+ingress:
+  enabled: true
+  className: "alb"
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+  hosts:
+    - host: "streaming.example.com"  # CHANGE THIS
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ConfigMaps for environment variables
+configMaps:
+  database:
+    MONGO_DB: "streamingapp"
+    MONGO_URI: "mongodb://mongodb.durga-streaming.svc.cluster.local:27017/streamingapp"
+  services:
+    CLIENT_URLS: "https://streaming.example.com"
+    STREAMING_PUBLIC_URL: "https://streaming.example.com"
+    AWS_REGION: "eu-west-2"
+    AWS_S3_BUCKET: "durga-streaming-app"
+
+# Secrets (should be created separately or via external secrets operator)
+secrets:
+  create: false
+  JWT_SECRET: ""
+  AWS_ACCESS_KEY_ID: ""
+  AWS_SECRET_ACCESS_KEY: ""
+
+# RBAC
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "durga-streaming"
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Network Policy
+networkPolicy:
+  enabled: false
+
+# Autoscaling
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80

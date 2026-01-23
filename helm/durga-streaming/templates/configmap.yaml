@@ -1,0 +1,22 @@
+{{- if .Values.configMaps }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-config
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: {{ .Chart.Name }}
+data:
+  {{- if .Values.configMaps.database }}
+  # Database Configuration
+  {{- range $key, $value := .Values.configMaps.database }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+  {{- if .Values.configMaps.services }}
+  # Services Configuration
+  {{- range $key, $value := .Values.configMaps.services }}
+  {{ $key }}: {{ $value | quote }}
+  {{- end }}
+  {{- end }}
+{{- end }}
