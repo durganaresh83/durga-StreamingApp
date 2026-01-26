@@ -1,0 +1,35 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: durga-streaming-app
+  region: eu-west-2
+
+vpc:
+  id: vpc-0376ebe6043cd8004
+  subnets:
+    public:
+      eu-west-2a:
+        id: subnet-067a0303e6a0bb68f
+      eu-west-2b:
+        id: subnet-0b6a655c4b09718b6
+      eu-west-2c:
+        id: subnet-01d94082ca6384cae
+
+nodeGroups:
+  - name: worker-ng
+    desiredCapacity: 3
+    minSize: 3
+    maxSize: 10
+    instanceType: t3.medium
+    amiFamily: AmazonLinux2023
+    labels:
+      role: worker
+    tags:
+      Environment: production
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        ebs: true
+        albIngress: true
+        cloudWatch: true

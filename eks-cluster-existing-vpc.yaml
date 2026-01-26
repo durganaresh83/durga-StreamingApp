@@ -1,0 +1,51 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: durga-streaming-app
+  region: eu-west-2
+  version: "1.34"
+
+vpc:
+  id: vpc-0376ebe6043cd8004
+  subnets:
+    public:
+      eu-west-2a:
+        id: subnet-067a0303e6a0bb68f
+      eu-west-2b:
+        id: subnet-0b6a655c4b09718b6
+      eu-west-2c:
+        id: subnet-01d94082ca6384cae
+
+nodeGroups:
+  - name: standard-nodes
+    desiredCapacity: 3
+    minSize: 3
+    maxSize: 10
+    instanceType: t3.medium
+    amiFamily: AmazonLinux2
+    ami: ami-01104fa6c8d824e09
+    overrideBootstrapCommand: |
+      #!/bin/bash
+      /etc/eks/bootstrap.sh durga-streaming-app
+    labels:
+      role: worker
+    iam:
+      withAddonPolicies:
+        autoScaler: true
+        awsLoadBalancerController: true
+        ebs: true
+
+addons:
+  - name: vpc-cni
+  - name: coredns
+  - name: kube-proxy
+
+cloudWatch:
+  clusterLogging:
+    enableTypes:
+      - api
+      - audit
+      - authenticator
+      - controllerManager
+      - scheduler

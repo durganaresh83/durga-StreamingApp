@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cloudwatch-dashboards
+  namespace: monitoring
+data:
+  dashboard-json: |
+    {
+      "widgets": [
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              [ "AWS/EKS", "cluster_node_count", { "stat": "Average" } ],
+              [ ".", "cluster_cpu_allocation_percentage", { "stat": "Average" } ],
+              [ ".", "cluster_memory_allocation_percentage", { "stat": "Average" } ]
+            ],
+            "period": 300,
+            "stat": "Average",
+            "region": "eu-west-2",
+            "title": "EKS Cluster Health"
+          }
+        },
+        {
+          "type": "log",
+          "properties": {
+            "query": "fields @timestamp, @message, kubernetes.pod_name | filter @message like /ERROR/ | stats count() by kubernetes.pod_name",
+            "region": "eu-west-2",
+            "title": "Application Errors"
+          }
+        },
+        {
+          "type": "metric",
+          "properties": {
+            "metrics": [
+              [ "AWS/ApplicationELB", "TargetResponseTime", { "stat": "Average" } ],
+              [ ".", "RequestCount", { "stat": "Sum" } ],
+              [ ".", "HTTPCode_Target_5XX_Count", { "stat": "Sum" } ]
+            ],
+            "period": 60,
+            "stat": "Average",
+            "region": "eu-west-2",
+            "title": "ALB Performance"
+          }
+        }
+      ]
+    }
