@@ -163,7 +163,7 @@ ingress:
 configMaps:
   database:
     MONGO_DB: "streamingapp"
-    MONGO_URI: "mongodb://mongodb.durga-streaming.svc.cluster.local:27017/streamingapp"
+    MONGO_URI: "mongodb://root:changeme@mongodb:27017/streamingapp?authSource=admin"
   services:
     CLIENT_URLS: "https://streaming.example.com"
     STREAMING_PUBLIC_URL: "https://streaming.example.com"

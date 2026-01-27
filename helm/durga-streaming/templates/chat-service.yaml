@@ -1,0 +1,45 @@
+{{- if .Values.chatService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: chat-service
+spec:
+  replicas: {{ .Values.chatService.replicaCount }}
+  selector:
+    matchLabels:
+      app: chat-service
+  template:
+    metadata:
+      labels:
+        app: chat-service
+    spec:
+      containers:
+        - name: chat-service
+          image: "{{ .Values.chatService.image.repository }}:{{ .Values.chatService.image.tag }}"
+          imagePullPolicy: {{ .Values.chatService.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.chatService.service.port }}
+          envFrom:
+            - configMapRef:
+                name: durga-streaming-config
+            - secretRef:
+                name: app-secrets
+          resources:
+            {{- toYaml .Values.chatService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chat-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: {{ .Values.chatService.service.type }}
+  selector:
+    app: chat-service
+  ports:
+    - port: {{ .Values.chatService.service.port }}
+      targetPort: {{ .Values.chatService.service.port }}
+{{- end }}

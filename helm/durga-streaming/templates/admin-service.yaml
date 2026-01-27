@@ -1,0 +1,45 @@
+{{- if .Values.adminService.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-service
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    app: admin-service
+spec:
+  replicas: {{ .Values.adminService.replicaCount }}
+  selector:
+    matchLabels:
+      app: admin-service
+  template:
+    metadata:
+      labels:
+        app: admin-service
+    spec:
+      containers:
+        - name: admin-service
+          image: "{{ .Values.adminService.image.repository }}:{{ .Values.adminService.image.tag }}"
+          imagePullPolicy: {{ .Values.adminService.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.adminService.service.port }}
+          envFrom:
+            - configMapRef:
+                name: durga-streaming-config
+            - secretRef:
+                name: app-secrets
+          resources:
+            {{- toYaml .Values.adminService.resources | nindent 12 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  namespace: {{ .Values.global.namespace }}
+spec:
+  type: {{ .Values.adminService.service.type }}
+  selector:
+    app: admin-service
+  ports:
+    - port: {{ .Values.adminService.service.port }}
+      targetPort: {{ .Values.adminService.service.port }}
+{{- end }}
